@@ -109,7 +109,7 @@ class AnalysisResultScreen extends StatelessWidget {
             CircularPercentIndicator(
               radius: 70,
               lineWidth: 10,
-              percent: (result.overallScore / 100).clamp(0, 1),
+              percent: (result.overallScore / 100).clamp(0.0, 1.0),
               center: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -199,7 +199,7 @@ class AnalysisResultScreen extends StatelessWidget {
         Expanded(
           child: LinearPercentIndicator(
             lineHeight: 8,
-            percent: (score / 100).clamp(0, 1),
+            percent: (score / 100).clamp(0.0, 1.0),
             progressColor: AppTheme.scoreColor(score),
             backgroundColor: Colors.white10,
             barRadius: const Radius.circular(4),
@@ -374,7 +374,7 @@ class AnalysisResultScreen extends StatelessWidget {
                           width: 60,
                           child: LinearPercentIndicator(
                             lineHeight: 4,
-                            percent: (filler.percentage / 10).clamp(0, 1),
+                            percent: (filler.percentage / 10).clamp(0.0, 1.0),
                             progressColor: AppTheme.warningColor,
                             backgroundColor: Colors.white10,
                             barRadius: const Radius.circular(2),
@@ -517,7 +517,7 @@ class AnalysisResultScreen extends StatelessWidget {
                 left: position * constraints.maxWidth,
                 top: 11,
                 child: Container(
-                  width: width.clamp(4, constraints.maxWidth * 0.2),
+                  width: width.clamp(4.0, constraints.maxWidth * 0.2),
                   height: 8,
                   decoration: BoxDecoration(
                     color: AppTheme.warningColor.withOpacity(0.7),
@@ -656,7 +656,7 @@ class AnalysisResultScreen extends StatelessWidget {
       x: x,
       barRods: [
         BarChartRodData(
-          toY: value.clamp(0, 1),
+          toY: value.clamp(0.0, 1.0),
           color: value > 0 ? color : Colors.white10,
           width: 40,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
@@ -666,7 +666,7 @@ class AnalysisResultScreen extends StatelessWidget {
   }
 
   double _normalizeWpm(double wpm, double min, double max) {
-    return ((wpm - min) / (max - min)).clamp(0.1, 1);
+    return ((wpm - min) / (max - min)).clamp(0.1, 1.0);
   }
 
   Widget _buildStrengthsCard(

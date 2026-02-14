@@ -140,12 +140,12 @@ class SpeechAnalysisService {
     double score = 100;
 
     // Penalize for filler words (each filler word = -1.5 points, capped at -30)
-    final fillerPenalty = (fillerWordCount * 1.5).clamp(0, 30).toDouble();
+    final fillerPenalty = (fillerWordCount * 1.5).clamp(0.0, 30.0);
     score -= fillerPenalty;
 
     // Penalize for excessive pauses (>5 long pauses = penalty)
     if (pauseCount > 5) {
-      score -= ((pauseCount - 5) * 2.0).clamp(0, 20);
+      score -= ((pauseCount - 5) * 2.0).clamp(0.0, 20.0);
     }
 
     // Penalize for very short responses (under 30 seconds indicates low confidence)
@@ -165,7 +165,7 @@ class SpeechAnalysisService {
       }
     }
 
-    return score.clamp(0, 100);
+    return score.clamp(0.0, 100.0);
   }
 
   double _calculateClarityScore({
@@ -192,7 +192,7 @@ class SpeechAnalysisService {
       }
     }
 
-    return score.clamp(0, 100);
+    return score.clamp(0.0, 100.0);
   }
 
   double _calculatePaceScore(double wordsPerMinute) {
