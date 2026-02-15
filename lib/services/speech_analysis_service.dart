@@ -1,8 +1,14 @@
 import 'package:uuid/uuid.dart';
 import '../models/speech_analysis_result.dart';
+import 'text_analysis_service.dart';
+import 'gemini_evaluation_service.dart';
 
 class SpeechAnalysisService {
   static const _uuid = Uuid();
+  final TextAnalysisService _textAnalysis = TextAnalysisService();
+  final GeminiEvaluationService _geminiService = GeminiEvaluationService();
+
+  GeminiEvaluationService get geminiService => _geminiService;
 
   static const List<String> fillerWordsList = [
     'um', 'uh', 'er', 'ah', 'like', 'you know', 'sort of', 'kind of',
@@ -11,14 +17,16 @@ class SpeechAnalysisService {
   ];
 
   /// Analyzes the full transcript and timing data to produce a result.
-  SpeechAnalysisResult analyze({
+  /// Runs on-device NLP analysis (free) and optionally Gemini AI evaluation.
+  Future<SpeechAnalysisResult> analyze({
     required String transcript,
     required String questionId,
     required String questionText,
+    required String questionCategory,
     required Duration totalDuration,
     required List<PauseInfo> detectedPauses,
     required List<double> recognitionConfidences,
-  }) {
+  }) async {
     final words = _extractWords(transcript);
     final totalWords = words.length;
 
@@ -35,6 +43,13 @@ class SpeechAnalysisService {
       (sum, p) => sum + p.duration,
     );
 
+    // ── On-device NLP analysis (100% free) ──
+    final textMetrics = _textAnalysis.analyze(
+      transcript: transcript,
+      question: questionText,
+    );
+
+    // ── Delivery scores ──
     final confidenceScore = _calculateConfidenceScore(
       fillerWordCount: fillerWordCount,
       totalWords: totalWords,
@@ -51,12 +66,29 @@ class SpeechAnalysisService {
 
     final paceScore = _calculatePaceScore(wordsPerMinute);
 
+    // ── Gemini AI evaluation (free tier, optional) ──
+    GeminiEvaluation? aiEval;
+    if (transcript.trim().length > 20) {
+      aiEval = await _geminiService.evaluate(
+        transcript: transcript,
+        question: questionText,
+        category: questionCategory,
+        wordsPerMinute: wordsPerMinute,
+        fillerWordCount: fillerWordCount,
+        pauseCount: detectedPauses.length,
+      );
+    }
+
+    // ── Combined overall score ──
     final overallScore = _calculateOverallScore(
       confidenceScore: confidenceScore,
       clarityScore: clarityScore,
       paceScore: paceScore,
+      contentQualityScore: textMetrics.contentQualityScore,
+      aiOverallScore: aiEval?.overallScore,
     );
 
+    // ── Merge strengths & improvements from all sources ──
     final strengths = _identifyStrengths(
       wordsPerMinute: wordsPerMinute,
       fillerWordCount: fillerWordCount,
@@ -64,6 +96,7 @@ class SpeechAnalysisService {
       pauseCount: detectedPauses.length,
       confidenceScore: confidenceScore,
       totalDuration: totalDuration,
+      textMetrics: textMetrics,
     );
 
     final improvements = _identifyImprovements(
@@ -73,6 +106,7 @@ class SpeechAnalysisService {
       pauseCount: detectedPauses.length,
       confidenceScore: confidenceScore,
       totalDuration: totalDuration,
+      textMetrics: textMetrics,
     );
 
     return SpeechAnalysisResult(
@@ -95,6 +129,29 @@ class SpeechAnalysisService {
       strengths: strengths,
       improvements: improvements,
       createdAt: DateTime.now(),
+      // Enhanced NLP metrics
+      contentQualityScore: textMetrics.contentQualityScore,
+      vocabularyDiversityScore: textMetrics.vocabularyDiversityScore,
+      readabilityScore: textMetrics.readabilityScore,
+      structureScore: textMetrics.structureScore,
+      specificityScore: textMetrics.specificityScore,
+      relevanceScore: textMetrics.relevanceScore,
+      starOverallScore: textMetrics.starAnalysis.overallScore,
+      starHasSituation: textMetrics.starAnalysis.hasSituation,
+      starHasTask: textMetrics.starAnalysis.hasTask,
+      starHasAction: textMetrics.starAnalysis.hasAction,
+      starHasResult: textMetrics.starAnalysis.hasResult,
+      powerWordsUsed: textMetrics.powerWordsUsed,
+      weakPhrasesUsed: textMetrics.weakPhrasesUsed,
+      // AI evaluation
+      hasAiEvaluation: aiEval != null,
+      aiContentScore: aiEval?.contentScore,
+      aiStructureScore: aiEval?.structureScore,
+      aiDepthScore: aiEval?.depthScore,
+      aiStrengths: aiEval?.keyStrengths,
+      aiImprovements: aiEval?.improvements,
+      aiIdealAnswerTips: aiEval?.idealAnswerTips,
+      aiOverallImpression: aiEval?.overallImpression,
     );
   }
 
@@ -211,9 +268,25 @@ class SpeechAnalysisService {
     required double confidenceScore,
     required double clarityScore,
     required double paceScore,
+    required double contentQualityScore,
+    double? aiOverallScore,
   }) {
-    // Weighted average
-    return (confidenceScore * 0.4 + clarityScore * 0.35 + paceScore * 0.25);
+    if (aiOverallScore != null) {
+      // When AI evaluation is available, blend all sources
+      // Delivery: 40%, On-device content: 25%, AI content: 35%
+      final deliveryScore =
+          confidenceScore * 0.4 + clarityScore * 0.35 + paceScore * 0.25;
+      return (deliveryScore * 0.40 +
+              contentQualityScore * 0.25 +
+              aiOverallScore * 0.35)
+          .clamp(0.0, 100.0);
+    }
+
+    // Without AI: Delivery 55%, On-device content 45%
+    final deliveryScore =
+        confidenceScore * 0.4 + clarityScore * 0.35 + paceScore * 0.25;
+    return (deliveryScore * 0.55 + contentQualityScore * 0.45)
+        .clamp(0.0, 100.0);
   }
 
   List<String> _identifyStrengths({
@@ -223,6 +296,7 @@ class SpeechAnalysisService {
     required int pauseCount,
     required double confidenceScore,
     required Duration totalDuration,
+    required TextAnalysisMetrics textMetrics,
   }) {
     final strengths = <String>[];
 
@@ -246,8 +320,25 @@ class SpeechAnalysisService {
       strengths.add('Good response length - concise yet thorough');
     }
 
-    if (totalWords >= 100) {
-      strengths.add('Detailed response with good content depth');
+    // Content-based strengths
+    if (textMetrics.starAnalysis.componentsPresent >= 3) {
+      strengths.add('Good use of STAR method structure');
+    }
+
+    if (textMetrics.specificityScore >= 70) {
+      strengths.add('Strong use of specific examples and details');
+    }
+
+    if (textMetrics.vocabularyDiversityScore >= 60) {
+      strengths.add('Rich and varied vocabulary');
+    }
+
+    if (textMetrics.powerWordsUsed.length >= 3) {
+      strengths.add('Effective use of power words: ${textMetrics.powerWordsUsed.take(3).join(", ")}');
+    }
+
+    if (textMetrics.relevanceScore >= 80) {
+      strengths.add('Response is highly relevant to the question');
     }
 
     if (strengths.isEmpty) {
@@ -264,6 +355,7 @@ class SpeechAnalysisService {
     required int pauseCount,
     required double confidenceScore,
     required Duration totalDuration,
+    required TextAnalysisMetrics textMetrics,
   }) {
     final improvements = <String>[];
 
@@ -310,10 +402,36 @@ class SpeechAnalysisService {
       );
     }
 
-    if (totalWords < 50 && totalDuration.inSeconds > 30) {
+    // Content-based improvements
+    if (textMetrics.starAnalysis.componentsPresent < 3 &&
+        textMetrics.starAnalysis.componentsPresent > 0) {
+      final missing = <String>[];
+      if (!textMetrics.starAnalysis.hasSituation) missing.add('Situation');
+      if (!textMetrics.starAnalysis.hasTask) missing.add('Task');
+      if (!textMetrics.starAnalysis.hasAction) missing.add('Action');
+      if (!textMetrics.starAnalysis.hasResult) missing.add('Result');
       improvements.add(
-        'Low word count relative to time spent. Try to fill the time with '
-        'more substantive content.',
+        'Use the STAR method — missing: ${missing.join(", ")}. '
+        'This gives your answer clear structure.',
+      );
+    } else if (textMetrics.starAnalysis.componentsPresent == 0 && totalWords > 30) {
+      improvements.add(
+        'Structure your response using the STAR method: '
+        'Situation, Task, Action, Result.',
+      );
+    }
+
+    if (textMetrics.specificityScore < 50 && totalWords > 30) {
+      improvements.add(
+        'Add more specific examples, numbers, and concrete details '
+        'to make your answer more compelling.',
+      );
+    }
+
+    if (textMetrics.weakPhrasesUsed.isNotEmpty) {
+      improvements.add(
+        'Avoid weak phrases like "${textMetrics.weakPhrasesUsed.take(2).join('", "')}" — '
+        'they reduce perceived confidence.',
       );
     }
 

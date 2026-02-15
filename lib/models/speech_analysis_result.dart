@@ -64,6 +64,31 @@ class SpeechAnalysisResult {
   final List<String> improvements;
   final DateTime createdAt;
 
+  // Enhanced NLP metrics (on-device, free)
+  final double contentQualityScore;
+  final double vocabularyDiversityScore;
+  final double readabilityScore;
+  final double structureScore;
+  final double specificityScore;
+  final double relevanceScore;
+  final double starOverallScore;
+  final bool starHasSituation;
+  final bool starHasTask;
+  final bool starHasAction;
+  final bool starHasResult;
+  final List<String> powerWordsUsed;
+  final List<String> weakPhrasesUsed;
+
+  // AI evaluation (Gemini free tier — null if unavailable)
+  final double? aiContentScore;
+  final double? aiStructureScore;
+  final double? aiDepthScore;
+  final List<String>? aiStrengths;
+  final List<String>? aiImprovements;
+  final List<String>? aiIdealAnswerTips;
+  final String? aiOverallImpression;
+  final bool hasAiEvaluation;
+
   const SpeechAnalysisResult({
     required this.id,
     required this.questionId,
@@ -84,6 +109,27 @@ class SpeechAnalysisResult {
     required this.strengths,
     required this.improvements,
     required this.createdAt,
+    this.contentQualityScore = 0,
+    this.vocabularyDiversityScore = 0,
+    this.readabilityScore = 0,
+    this.structureScore = 0,
+    this.specificityScore = 0,
+    this.relevanceScore = 0,
+    this.starOverallScore = 0,
+    this.starHasSituation = false,
+    this.starHasTask = false,
+    this.starHasAction = false,
+    this.starHasResult = false,
+    this.powerWordsUsed = const [],
+    this.weakPhrasesUsed = const [],
+    this.aiContentScore,
+    this.aiStructureScore,
+    this.aiDepthScore,
+    this.aiStrengths,
+    this.aiImprovements,
+    this.aiIdealAnswerTips,
+    this.aiOverallImpression,
+    this.hasAiEvaluation = false,
   });
 
   Map<String, dynamic> toMap() {

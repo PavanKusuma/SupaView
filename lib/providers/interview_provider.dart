@@ -4,6 +4,7 @@ import '../models/interview_question.dart';
 import '../models/speech_analysis_result.dart';
 import '../services/speech_analysis_service.dart';
 import '../services/speech_recognition_service.dart';
+import '../services/gemini_evaluation_service.dart';
 import '../services/session_storage_service.dart';
 
 enum InterviewState {
@@ -123,12 +124,13 @@ class InterviewProvider extends ChangeNotifier {
 
     await _speechService.stopListening();
 
-    // Run analysis
+    // Run analysis (now async — includes on-device NLP + optional Gemini AI)
     if (_currentQuestion != null && _transcript.trim().isNotEmpty) {
-      _lastResult = _analysisService.analyze(
+      _lastResult = await _analysisService.analyze(
         transcript: _transcript,
         questionId: _currentQuestion!.id,
         questionText: _currentQuestion!.question,
+        questionCategory: _currentQuestion!.category,
         totalDuration: _elapsed,
         detectedPauses: _speechService.pauses,
         recognitionConfidences: _speechService.confidences,
@@ -142,21 +144,22 @@ class InterviewProvider extends ChangeNotifier {
   }
 
   /// Analyze a transcript from an imported video.
-  void analyzeImportedTranscript({
+  Future<void> analyzeImportedTranscript({
     required String transcript,
     required InterviewQuestion question,
     required Duration duration,
-  }) {
+  }) async {
     _currentQuestion = question;
     _transcript = transcript;
     _elapsed = duration;
     _state = InterviewState.analyzing;
     notifyListeners();
 
-    _lastResult = _analysisService.analyze(
+    _lastResult = await _analysisService.analyze(
       transcript: transcript,
       questionId: question.id,
       questionText: question.question,
+      questionCategory: question.category,
       totalDuration: duration,
       detectedPauses: [],
       recognitionConfidences: [],
@@ -166,6 +169,9 @@ class InterviewProvider extends ChangeNotifier {
     _state = InterviewState.completed;
     notifyListeners();
   }
+
+  /// Access Gemini service for API key management.
+  GeminiEvaluationService get geminiService => _analysisService.geminiService;
 
   Future<void> saveSession() async {
     if (_sessionResults.isEmpty) return;

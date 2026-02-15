@@ -71,6 +71,13 @@ class AnalysisResultScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 _buildPaceChart(context, result),
                 const SizedBox(height: 16),
+                _buildContentAnalysisCard(context, result),
+                const SizedBox(height: 16),
+                _buildSTARCard(context, result),
+                const SizedBox(height: 16),
+                if (result.hasAiEvaluation)
+                  _buildAiEvaluationCard(context, result),
+                if (result.hasAiEvaluation) const SizedBox(height: 16),
                 _buildStrengthsCard(context, result),
                 const SizedBox(height: 16),
                 _buildImprovementsCard(context, result),
@@ -803,6 +810,386 @@ class AnalysisResultScreen extends StatelessWidget {
                     height: 1.6,
                   ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContentAnalysisCard(
+      BuildContext context, SpeechAnalysisResult result) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.analytics_outlined,
+                    size: 20, color: AppTheme.primaryColor),
+                const SizedBox(width: 8),
+                Text(
+                  'Content Quality',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                ),
+                const Spacer(),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white10,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.phone_android, size: 10, color: Colors.white38),
+                      SizedBox(width: 4),
+                      Text(
+                        'On-Device',
+                        style: TextStyle(color: Colors.white38, fontSize: 10),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _scoreBar(context, 'Vocabulary', result.vocabularyDiversityScore,
+                Icons.text_fields),
+            const SizedBox(height: 10),
+            _scoreBar(context, 'Readability', result.readabilityScore,
+                Icons.menu_book),
+            const SizedBox(height: 10),
+            _scoreBar(context, 'Structure', result.structureScore,
+                Icons.account_tree),
+            const SizedBox(height: 10),
+            _scoreBar(context, 'Specificity', result.specificityScore,
+                Icons.gps_fixed),
+            const SizedBox(height: 10),
+            _scoreBar(context, 'Relevance', result.relevanceScore,
+                Icons.track_changes),
+            if (result.powerWordsUsed.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              const Divider(color: Colors.white12),
+              const SizedBox(height: 8),
+              Text(
+                'Power words used:',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(color: Colors.white38),
+              ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: result.powerWordsUsed.map((w) => Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.successColor.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    w,
+                    style: const TextStyle(
+                      color: AppTheme.successColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                )).toList(),
+              ),
+            ],
+            if (result.weakPhrasesUsed.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Text(
+                'Weak phrases to avoid:',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(color: Colors.white38),
+              ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: result.weakPhrasesUsed.map((w) => Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.warningColor.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    '"$w"',
+                    style: const TextStyle(
+                      color: AppTheme.warningColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                )).toList(),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSTARCard(BuildContext context, SpeechAnalysisResult result) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.star_outline,
+                    size: 20, color: AppTheme.warningColor),
+                const SizedBox(width: 8),
+                Text(
+                  'STAR Method',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                ),
+                const Spacer(),
+                Text(
+                  '${result.starOverallScore.round()}%',
+                  style: TextStyle(
+                    color: AppTheme.scoreColor(result.starOverallScore),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                _starComponent('S', 'Situation', result.starHasSituation),
+                const SizedBox(width: 8),
+                _starComponent('T', 'Task', result.starHasTask),
+                const SizedBox(width: 8),
+                _starComponent('A', 'Action', result.starHasAction),
+                const SizedBox(width: 8),
+                _starComponent('R', 'Result', result.starHasResult),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _starSummary(result),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.white54,
+                    fontStyle: FontStyle.italic,
+                  ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _starComponent(String letter, String label, bool present) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: (present ? AppTheme.successColor : Colors.white)
+              .withOpacity(present ? 0.15 : 0.05),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: present
+                ? AppTheme.successColor.withOpacity(0.3)
+                : Colors.white10,
+          ),
+        ),
+        child: Column(
+          children: [
+            Text(
+              letter,
+              style: TextStyle(
+                color: present ? AppTheme.successColor : Colors.white24,
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: present ? Colors.white54 : Colors.white24,
+                fontSize: 10,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Icon(
+              present ? Icons.check_circle : Icons.radio_button_unchecked,
+              size: 16,
+              color: present ? AppTheme.successColor : Colors.white24,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _starSummary(SpeechAnalysisResult result) {
+    final count = (result.starHasSituation ? 1 : 0) +
+        (result.starHasTask ? 1 : 0) +
+        (result.starHasAction ? 1 : 0) +
+        (result.starHasResult ? 1 : 0);
+    if (count == 4) return 'Excellent! All STAR components detected.';
+    if (count == 3) return 'Good structure — one component could be stronger.';
+    if (count == 2) return 'Partial structure — try to include all four components.';
+    if (count == 1) return 'Weak structure — practice using the full STAR method.';
+    return 'No STAR structure detected. Frame your answer around a specific situation, your task, actions taken, and results achieved.';
+  }
+
+  Widget _buildAiEvaluationCard(
+      BuildContext context, SpeechAnalysisResult result) {
+    return Card(
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppTheme.accentColor.withOpacity(0.08),
+              AppTheme.cardDark,
+            ],
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.auto_awesome,
+                    size: 20, color: AppTheme.accentColor),
+                const SizedBox(width: 8),
+                Text(
+                  'AI Evaluation',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                ),
+                const Spacer(),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.accentColor.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.auto_awesome,
+                          size: 10, color: AppTheme.accentColor),
+                      SizedBox(width: 4),
+                      Text(
+                        'Gemini',
+                        style: TextStyle(
+                            color: AppTheme.accentColor, fontSize: 10),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (result.aiOverallImpression != null &&
+                result.aiOverallImpression!.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  result.aiOverallImpression!,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.white70,
+                        fontStyle: FontStyle.italic,
+                        height: 1.5,
+                      ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
+            if (result.aiContentScore != null)
+              _scoreBar(context, 'Content', result.aiContentScore!,
+                  Icons.description),
+            if (result.aiStructureScore != null) ...[
+              const SizedBox(height: 10),
+              _scoreBar(context, 'Structure', result.aiStructureScore!,
+                  Icons.account_tree),
+            ],
+            if (result.aiDepthScore != null) ...[
+              const SizedBox(height: 10),
+              _scoreBar(context, 'Depth', result.aiDepthScore!,
+                  Icons.layers),
+            ],
+            if (result.aiStrengths != null &&
+                result.aiStrengths!.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              const Divider(color: Colors.white12),
+              const SizedBox(height: 8),
+              ...result.aiStrengths!.map((s) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.check_circle,
+                            size: 14, color: AppTheme.accentColor),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(s,
+                              style: const TextStyle(
+                                  color: Colors.white60, fontSize: 13)),
+                        ),
+                      ],
+                    ),
+                  )),
+            ],
+            if (result.aiIdealAnswerTips != null &&
+                result.aiIdealAnswerTips!.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Text(
+                'Tips for the ideal answer:',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.accentColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+              const SizedBox(height: 6),
+              ...result.aiIdealAnswerTips!.map((tip) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.lightbulb_outline,
+                            size: 14, color: AppTheme.warningColor),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(tip,
+                              style: const TextStyle(
+                                  color: Colors.white54, fontSize: 13)),
+                        ),
+                      ],
+                    ),
+                  )),
+            ],
           ],
         ),
       ),
